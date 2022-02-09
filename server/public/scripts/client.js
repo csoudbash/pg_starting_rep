@@ -3,25 +3,59 @@ $(document).ready(onReady);
 function onReady() {
     getSongs();
     $('#add').on('click', postSong);
+    $('#songsTableBody').on('click', '.btn-delete', deleteSong);
+    $('#songsTableBody').on('click', '.btn-vote', voteSong);
+    // $('#songsTableBody').on('click', '.btn-delete', deleteSong);
+}
+
+function voteSong() {
+    console.log('clicked vote button');
+    let id = $(this).closest('tr').data().id;
+    console.log(id);
+    let direction = $(this).text().toLowerCase();
+
+    console.log(direction);
+    // call $.ajax for PUT
+    // need id and direction...
+    $.ajax({
+        method: 'PUT',
+        url: `/songs/${id}`,
+        data: {
+            direction: direction
+        }
+    }).then(function(response){
+        getSongs();
+    }).catch(function(err){
+        console.log('error!!!', err);
+    })
+    
 }
 
 // get artist data from the server
 function getSongs() {
     $("#songsTableBody").empty();
-    let songId = 90;
+    // let songId = 90;
     $.ajax({
         type: 'GET',
-        url: `/songs/${songId}`// selecting url path by id
+        // url: `/songs/${songId}`// selecting url path by id
+        url: `/songs`
     }).then(function (response) {
         console.log("GET /songs response", response);
         // append data to the DOM
         for (let i = 0; i < response.length; i++) {
             $('#songsTableBody').append(`
-                <tr>
-                    <td>${response[i].artist}</td>
-                    <td>${response[i].track}</td>
-                    <td>${response[i].rank}</td>
-                    <td>${response[i].published}</td>
+                <tr data-id = ${response[i].id}>
+                <td>${response[i].artist}</td>
+                <td>${response[i].track}</td>
+                <td>${response[i].rank}
+                    <button class ="btn-vote">UP</button>
+                    <button class ="btn-vote">DOWN</button>
+                </td>
+
+                <td>${response[i].published}</td>
+                <td>
+                    <button class="btn-delete" data-id = ${response[i].id}>Delete</button>
+                </td>
                 </tr>
             `);
         }
@@ -46,4 +80,18 @@ function postSong() {
         $('#published').val('')
         getSongs();
     });
+}
+
+// jquery apparently hates arrow functions
+function deleteSong() {
+    let songId = $(this).data().id;
+    $.ajax({
+        method: 'DELETE',
+        url: `/songs/${songId}`
+    }).then(function(response) {
+        console.log('deleted it!');
+        getSongs();
+    }).catch(function(error){
+        console.log('error deleting!', error);
+    })
 }

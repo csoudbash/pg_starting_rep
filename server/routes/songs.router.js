@@ -1,4 +1,5 @@
 const express = require('express');
+const res = require('express/lib/response');
 const router = express.Router();
 const pool = require('../modules/pool');
 // const pg = require('pg');
@@ -41,20 +42,37 @@ let songs = [
     }
 ];
 
-router.get('/:id', (req, res) => {
+// router.get('/:id', (req, res) => {
+//     //grab a value from the request url
+//     const idToGet = req.params.id;
+//     // check SQL query text in postico first!
+//     let queryText = 'SELECT * FROM "songs" WHERE "id"=$1;';
+//     // the second array arugment is optional, and is used when we add 
+//     // sanitized parameters to queryText. sanatizing referring to ensuring
+//     // no sql injection can occur
+//     pool.query(queryText, [idToGet])
+//         .then((result) =>{
+//             res.send(result.rows);
+//             console.log('song with id', idToGet);
+//         }).catch((err) => {
+//             console.log('error!', idToGet, queryText, err);
+//             res.sendStatus(500);
+//         })
+// });
+router.get('/', (req, res) => {
     //grab a value from the request url
     const idToGet = req.params.id;
     // check SQL query text in postico first!
-    let queryText = 'SELECT * FROM "songs" WHERE "id"=$1;';
+    let queryText = 'SELECT * FROM "songs" ORDER BY "rank" DESC;';
     // the second array arugment is optional, and is used when we add 
     // sanitized parameters to queryText. sanatizing referring to ensuring
     // no sql injection can occur
-    pool.query(queryText, [idToGet])
+    pool.query(queryText)
         .then((result) =>{
             res.send(result.rows);
-            console.log('song with id', idToGet);
+            // console.log('song with id', idToGet);
         }).catch((err) => {
-            console.log('error!', idToGet, queryText, err);
+            console.log('error!', queryText, err);
             res.sendStatus(500);
         })
 });
@@ -76,5 +94,53 @@ router.post('/', (req, res) => {
             res.sendStatus(500);
         })
 });
+
+router.delete('/:id',(req,res) => { //why is this still targetting the id in the url 
+    //when the passthrough url already include it
+    let reqId = req.params.id;
+    console.log('delete id', reqId);
+    let queryText = 'DELETE FROM "songs" WHERE "id" = $1;';
+    pool.query(queryText,[reqId])
+    .then((result) => {
+        console.log('song deleted!');
+        res.sendStatus(200);
+    }).catch((error) => {
+    console.log('error making database query', queryText, error);
+    res.sendStatus(500);
+    })
+})
+
+router.put('/:id', (req,res)=>{// will require req.body and req.params
+    let idToUpdate = req.params.id;
+    console.log(idToUpdate);
+    console.log(req.body);
+    let sqlText = ''
+    if(req.body.direction === 'up' ){
+       sqlText= `
+        UPDATE "songs" 
+        SET "rank" = "rank" - 1
+        WHERE "id" =  $1;
+        `
+    }else if(req.body.direction === 'down'){
+        sqlText = `
+        UPDATE "songs" 
+        SET "rank" = "rank" + 1
+        WHERE "id" =  $1;
+       `
+    }else{
+        // bad req...
+        res.sendStatus(400);
+        //NOTHING ELSE HAPPENS
+        return;
+    }
+    let sqlValues = [idToUpdate];
+
+    pool.query(sqlText, sqlValues)
+    .then((result) => {
+        res.sendStatus(200)
+    }).catch((err) => {
+        res.sendStatus(500);
+    })
+})
 
 module.exports = router;
