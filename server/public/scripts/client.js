@@ -8,9 +8,10 @@ function onReady() {
 // get artist data from the server
 function getSongs() {
     $("#songsTableBody").empty();
+    let songId = 90;
     $.ajax({
         type: 'GET',
-        url: '/songs'
+        url: `/songs/${songId}`// selecting url path by id
     }).then(function (response) {
         console.log("GET /songs response", response);
         // append data to the DOM
